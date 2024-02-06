@@ -2,8 +2,6 @@ stages:
   - sast
   - sca
   - secrets
-  - build
-  - container
 
 sast_scan:
   image: docker:stable
@@ -14,9 +12,20 @@ sast_scan:
   services:
     - docker:stable-dind
   script:
-    - apk add py-pip
+    - apk add py-pip curl
     - pip install bandit
     - bandit -r -f json -o bandit_result.json --exit-zero app/
+    - |
+      curl -X 'POST' \
+        'http://170.187.141.105:8080/api/v2/reimport-scan/' \
+        -H 'accept: application/json' \
+        -H 'Authorization: Token 6aa3f54c2bd91951c7945dac26a8065a2314580c' \
+        -H 'Content-Type: multipart/form-data' \
+        -F 'test=5' \
+        -F '[email protected];type=application/json' \
+        -F file=@"bandit_result.json" \
+        -F 'scan_type=Bandit Scan' \
+        -F 'tags=test'
   artifacts:
     paths: [bandit_result.json]
     expire_in: 1 week
@@ -26,9 +35,20 @@ semgrep:
   stage: sast
   allow_failure: true
   script:
-    - apk add py-pip
+    - apk add py-pip curl
     - pip install semgrep
     - semgrep scan . --config auto --json >> semgrep_result.json
+    - |
+      curl -X 'POST' \
+        'http://170.187.141.105:8080/api/v2/reimport-scan/' \
+        -H 'accept: application/json' \
+        -H 'Authorization: Token 6aa3f54c2bd91951c7945dac26a8065a2314580c' \
+        -H 'Content-Type: multipart/form-data' \
+        -F 'test=6' \
+        -F '[email protected];type=application/json' \
+        -F file=@"semgrep_result.json" \
+        -F 'scan_type=Semgrep JSON Report' \
+        -F 'tags=test'
   artifacts:
     paths: [semgrep_result.json]
     expire_in: 1 week
@@ -42,60 +62,20 @@ gitleaks:
   services:
     - docker:dind
   script:
+    - apk add py-pip curl
     - docker run --rm --name=gitleaks -v $PWD/:/code zricethezav/gitleaks  detect  --source /code --report-path /code/gitleaks.json || true
+    - |
+      curl -X 'POST' \
+        'http://170.187.141.105:8080/api/v2/reimport-scan/' \
+        -H 'accept: application/json' \
+        -H 'Authorization: Token 6aa3f54c2bd91951c7945dac26a8065a2314580c' \
+        -H 'Content-Type: multipart/form-data' \
+        -F 'test=7' \
+        -F '[email protected];type=application/json' \
+        -F file=@"gitleaks.json" \
+        -F 'scan_type=Gitleaks Scan' \
+        -F 'tags=test'
   artifacts:
     paths: [gitleaks.json]
-    expire_in: 1 week
-
-build:
-  image: docker:latest
-  stage: build
-  services:
-    - docker:dind
-  before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-  script:
-    - echo "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
-    - docker build --pull -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" .
-    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
-
-dockerfile_scan:
-  image: docker:stable
-  stage: container
-  variables:
-    DOCKER_DRIVER: overlay2
-  allow_failure: true
-  services:
-    - docker:dind
-  before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-  script:
-    - docker run hadolint/hadolint < Dockerfile >> hadolint-results.txt
-  artifacts:
-    paths: [hadolint-results.txt]
-    expire_in: 1 week
-
-trivy_scan:
-  image:
-    name: docker:stable
-  stage: container
-  services:
-    - docker:dind
-  variables:
-    TRIVY_AUTH_URL: $CI_REGISTRY
-    TRIVY_USERNAME: $CI_REGISTRY_USER
-    TRIVY_PASSWORD: $CI_REGISTRY_PASSWORD
-  before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - docker pull ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
-    - apk add -U wget ca-certificates tar curl git
-    - export VERSION=$(curl --silent "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-    - wget https://github.com/aquasecurity/trivy/releases/download/v${VERSION}/trivy_${VERSION}_Linux-64bit.tar.gz
-    - tar zxvf trivy_${VERSION}_Linux-64bit.tar.gz
-  script:
-    - ./trivy image --exit-code 0 -o trivy_result.json -f json ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
-  artifacts:
-    paths:
-      - trivy_result.json
     expire_in: 1 week
 
