@@ -1,5 +1,11 @@
 import requests
 
+Url = 0
+Token = 0
+Test_id = 0
+Tool_Result_file = 0
+API_Endpoint = 0
+
 headers = {
     'accept': 'application/json',
     'Authorization': 'Token 6aa3f54c2bd91951c7945dac26a8065a2314580c',
