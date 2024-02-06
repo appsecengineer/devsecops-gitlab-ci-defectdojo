@@ -34,16 +34,6 @@ semgrep:
       p/ci
       p/python
 
-pyraider_dependency_scanning:
-  image: python:3.7-alpine
-  stage: sca
-  script:
-    - pip install pyraider
-    - pyraider check -f app/requirements.txt -e json pyraider.json
-  artifacts:
-    paths: [pyraider.json]
-    expire_in: 1 week
-
 gitleaks:
   image: docker:stable
   stage: secrets
