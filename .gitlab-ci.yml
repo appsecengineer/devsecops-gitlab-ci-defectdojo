@@ -98,3 +98,4 @@ trivy_scan:
     paths:
       - trivy_result.json
     expire_in: 1 week
+
