@@ -16,11 +16,11 @@ sast_scan:
     - bandit -r -f json -o bandit_result.json --exit-zero app/
     - |
       curl -X 'POST' \
-        'http://170.187.141.105:8080/api/v2/reimport-scan/' \
+        'http://<your-instance-server-ip>:8080/api/v2/reimport-scan/' \
         -H 'accept: application/json' \
-        -H 'Authorization: Token 6aa3f54c2bd91951c7945dac26a8065a2314580c' \
+        -H 'Authorization: Token <your-instance-api-token>' \
         -H 'Content-Type: multipart/form-data' \
-        -F 'test=5' \
+        -F 'test=<your-instance-test-id>' \
         -F '[email protected];type=application/json' \
         -F file=@"bandit_result.json" \
         -F 'scan_type=Bandit Scan' \
@@ -39,11 +39,11 @@ semgrep:
     - semgrep scan . --config auto --json >> semgrep_result.json
     - |
       curl -X 'POST' \
-        'http://170.187.141.105:8080/api/v2/reimport-scan/' \
+        'http://<your-instance-server-ip>:8080/api/v2/reimport-scan/' \
         -H 'accept: application/json' \
-        -H 'Authorization: Token 6aa3f54c2bd91951c7945dac26a8065a2314580c' \
+        -H 'Authorization: Token <your-instance-api-token>' \
         -H 'Content-Type: multipart/form-data' \
-        -F 'test=6' \
+        -F 'test=<your-instance-test-id>' \
         -F '[email protected];type=application/json' \
         -F file=@"semgrep_result.json" \
         -F 'scan_type=Semgrep JSON Report' \
@@ -65,11 +65,11 @@ gitleaks:
     - docker run --rm --name=gitleaks -v $PWD/:/code zricethezav/gitleaks  detect  --source /code --report-path /code/gitleaks.json || true
     - |
       curl -X 'POST' \
-        'http://170.187.141.105:8080/api/v2/reimport-scan/' \
+        'http://<your-instance-server-ip>:8080/api/v2/reimport-scan/' \
         -H 'accept: application/json' \
-        -H 'Authorization: Token 6aa3f54c2bd91951c7945dac26a8065a2314580c' \
+        -H 'Authorization: Token <your-instance-api-token>' \
         -H 'Content-Type: multipart/form-data' \
-        -F 'test=7' \
+        -F 'test=<your-instance-test-id>' \
         -F '[email protected];type=application/json' \
         -F file=@"gitleaks.json" \
         -F 'scan_type=Gitleaks Scan' \
